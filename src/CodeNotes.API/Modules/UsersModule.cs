@@ -1,7 +1,7 @@
 ﻿using Carter;
-using CodeNotes.API.Requests;
-using CodeNotes.Domain.Repository;
-using CodeNotes.Infrastructure.Entities;
+using CodeNotes.Application.UseCases.Users.CreateUser;
+using CodeNotes.Application.UseCases.Users.LoginUser;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CodeNotes.API.Modules;
@@ -16,37 +16,29 @@ public class UsersModule : CarterModule
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
         app.MapPost("/create", async (
-            [FromBody] CreateUserRequest request,
-            [FromServices] IUserRepository<User> userRepository) =>
+            [FromBody] CreateUserCommand command,
+            ISender sender) =>
         {
-            var user = new User
-            {
-                Email = request.Email,
-                Username = request.Username,
-                Password = request.Password,
-                Bio = request.Bio,
-            };
+            var response = await sender.Send(command);
 
-            var token = await userRepository.CreateUser(user);
+            if (response.IsFailure)
+                return Results.BadRequest(response);
 
-            if (string.IsNullOrEmpty(token))
-                return Results.BadRequest();
-
-            return Results.Ok(token);
+            return Results.Ok(response.Value);
         })
         .WithName("CreateUser")
         .WithOpenApi();
 
         app.MapPost("/login", async (
-            [FromBody] LoginRequest request,
-            [FromServices] IUserRepository<User> userRepository) =>
+            [FromBody] LoginCommand command,
+            ISender sender) =>
         {
-            var token = await userRepository.Login(request.Email, request.Password);
+            var response = await sender.Send(command);
 
-            if (string.IsNullOrEmpty(token))
-                return Results.BadRequest();
+            if (response.IsFailure)
+                return Results.BadRequest(response);
 
-            return Results.Ok(token);
+            return Results.Ok(response.Value);
         })
         .WithName("Login")
         .WithOpenApi();

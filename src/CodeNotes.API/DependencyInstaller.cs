@@ -1,5 +1,7 @@
 ﻿using Carter;
+using CodeNotes.API.Middlewares;
 using CodeNotes.Domain.DependencyInjection;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -36,18 +38,25 @@ public class DependencyInstaller : IDependencyInstaller
         });
         services.AddAuthorization();
 
+        services.AddTransient<GlobalExceptionHandlerMiddleware>();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowWebApp", builder =>
+            {
+                builder
+                    .WithOrigins("http://localhost:3000")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
+        });
+
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "CodeNotes.API",
-                Description = "Learn how to protect your .NET applications with Auth0",
-                Contact = new OpenApiContact
-                {
-                    Name = ".NET Identity with Auth0",
-                    Url = new Uri("https://auth0.com/resources/ebooks/net-identity-with-auth0?utm_source=auth0_dotnet_template&utm_medium=sc&utm_campaign=webapi_dotnet_ebook")
-                },
                 Version = "v1.0.0"
             });
 
@@ -72,6 +81,8 @@ public class DependencyInstaller : IDependencyInstaller
                 { securitySchema, new[] { "Bearer" } }
             });
         });
+
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviorMiddleware<,>));
 
         services.AddCarter(
             new DependencyContextAssemblyCatalog(typeof(DependencyInstaller).Assembly));

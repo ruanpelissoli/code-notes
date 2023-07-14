@@ -1,6 +1,6 @@
-﻿using CodeNotes.Domain.DependencyInjection;
+﻿using CodeNotes.Domain.Aggregates;
+using CodeNotes.Domain.DependencyInjection;
 using CodeNotes.Domain.Repository;
-using CodeNotes.Infrastructure.Entities;
 using CodeNotes.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +20,7 @@ public class DependencyInstaller : IDependencyInstaller
                     AutoConnectRealtime = true
                 }));
 
-        services.AddScoped<IBaseRepository<Note>, NotesRepository>();
-        services.AddScoped<IUserRepository<User>, UsersRepository>();
+        services.AddScoped<INotesRepository<Note>, NotesRepository>();
+        services.AddScoped<IUserRepository<Domain.Aggregates.User>, UsersRepository>();
     }
 }

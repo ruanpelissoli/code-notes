@@ -1,4 +1,5 @@
-﻿using CodeNotes.Domain.Repository;
+﻿using CodeNotes.Domain.Aggregates;
+using CodeNotes.Domain.Repository;
 using CodeNotes.Infrastructure.Entities;
 using Postgrest;
 using static Postgrest.QueryOptions;
@@ -13,25 +14,27 @@ internal class UsersRepository : IUserRepository<User>
         _supabaseClient = supabaseClient;
     }
 
-    public async Task<string?> CreateUser(User user)
+    public async Task<(Guid, string?)> CreateUser(User user, string password)
     {
-        var session = await _supabaseClient.Auth.SignUp(user.Email, user.Password);
+        var session = await _supabaseClient.Auth.SignUp(user.Email, password);
 
         if (session?.User == null)
-            return string.Empty;
+            return (Guid.Empty, string.Empty);
 
-        var userBio = new UserBio
+        var userId = Guid.Parse(session.User.Id!);
+
+        var userEntity = new UserInfoEntity
         {
-            UserId = Guid.Parse(session.User.Id!),
+            UserId = userId,
+            Email = user.Email,
             Username = user.Username,
             Bio = user.Bio,
-            CreatedAt = DateTimeOffset.UtcNow
         };
 
-        await _supabaseClient.From<UserBio>()
-            .Insert(userBio, new QueryOptions { Returning = ReturnType.Minimal });
+        await _supabaseClient.From<UserInfoEntity>()
+            .Insert(userEntity, new QueryOptions { Returning = ReturnType.Minimal });
 
-        return session.AccessToken;
+        return (userId, session.AccessToken);
     }
 
     public async Task<string?> Login(string email, string password)
@@ -46,7 +49,6 @@ internal class UsersRepository : IUserRepository<User>
         {
             return string.Empty;
         }
-
     }
 
     public async Task Logout()
